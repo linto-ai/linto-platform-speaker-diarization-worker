@@ -6,6 +6,8 @@ services:
     container_name: speaker-diarization-worker
     build: .
     image: lintoai/linto-platform-speaker-diarization-worker:latest
+    volumes:
+      - ${LOGS_PATH}:/opt/logs
     ports:
       - target: 80
         published: 8888
