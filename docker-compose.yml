@@ -5,13 +5,7 @@ services:
   speaker-diarization:
     container_name: speaker-diarization-worker
     build: .
-<<<<<<< HEAD
     image: lintoai/linto-platform-speaker-diarization-worker:latest
-=======
-    image: lintoai/linto-platform-speaker-diarization-worker:latest-unstable
-    volumes:
-      - ${LOGS_PATH}:/opt/logs
->>>>>>> next
     ports:
       - target: 80
         published: 8888
