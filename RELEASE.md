@@ -1,3 +1,7 @@
+# 1.0.0
+- Implement the speaker diarization worker based on pyBK
+- Add SwaggerUI interface
+
 # 0.1.0
 - Create a flask server
 - Create two endpoints

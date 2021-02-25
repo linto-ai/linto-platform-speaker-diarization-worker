@@ -1,0 +1,31 @@
+swagger: "2.0"
+
+info:
+  version: 1.0.0
+  title: Speaker Diarization 
+  description: A simple way to test Speaker Diarization API, and to learn how to use it
+
+schemes:
+  - http
+host: localhost:8888
+basePath: /
+
+paths:
+  /:
+    post:
+      tags:
+        - "Speaker-Diarization API"
+      summary: The process of segmenting and co-indexing speech signals by speaker.
+      consumes:
+      - "multipart/form-data"
+      produces:
+      - "application/json"
+      parameters: 
+      - name: "file"
+        in: "formData"
+        description: "Audio File"
+        required: true
+        type: "file"
+      responses:
+        200:
+          description: Successfully transcribe the audio

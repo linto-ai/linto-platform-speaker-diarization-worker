@@ -16,14 +16,19 @@ RUN apt-get update &&\
 # Install main service packages
 RUN pip3 install flask flask-swagger-ui gevent
 
+# Install pyBK dependencies
+RUN wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && ./llvm.sh 10 && \
+    export LLVM_CONFIG=/usr/bin/llvm-config-10 && \
+    pip3 install numpy && \
+    pip3 install librosa webrtcvad scipy sklearn
+
 
 # Define the main folder
 WORKDIR /usr/src/speaker-diarization
 
 # Copy main functions
-COPY docker-entrypoint.sh .
-COPY logging.cfg .
-COPY run.py .
+COPY docker-entrypoint.sh logging.cfg SpeakerDiarization.py run.py ./
+COPY pyBK/diarizationFunctions.py pyBK/diarizationFunctions.py
 
 # logs output directory
 RUN mkdir -p /opt/logs

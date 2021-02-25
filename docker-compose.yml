@@ -8,6 +8,7 @@ services:
     image: lintoai/linto-platform-speaker-diarization-worker:latest
     volumes:
       - ${LOGS_PATH}:/opt/logs
+      - ${SWAGGER_PATH}:/opt/swagger/
     ports:
       - target: 80
         published: 8888
