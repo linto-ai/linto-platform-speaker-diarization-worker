@@ -13,6 +13,7 @@ import sys
 import uuid
 import yaml
 import numpy as np
+from spafe.features.mfcc import mfcc, imfcc
 from flask_swagger_ui import get_swaggerui_blueprint
 ##############
 
@@ -41,14 +42,14 @@ class SpeakerDiarization:
 
         # KBM
         # Minimum number of Gaussians in the initial pool
-        self.minimumNumberOfInitialGaussians = 1790
+        self.minimumNumberOfInitialGaussians = 1024
         self.maximumKBMWindowRate = 50  # Maximum window rate for Gaussian computation
         self.windowLength = 200  # Window length for computing Gaussians
         self.kbmSize = 320  # Number of final Gaussian components in the KBM
         # If set to 1, the KBM size is set as a proportion, given by "relKBMsize", of the pool size
         self.useRelativeKBMsize = 1
         # Relative KBM size if "useRelativeKBMsize = 1" (value between 0 and 1).
-        self.relKBMsize = 0.85
+        self.relKBMsize = 0.4
         ######
 
         # BINARY_KEY
@@ -57,7 +58,7 @@ class SpeakerDiarization:
         ######
 
         # CLUSTERING
-        self.N_init = 10  # Number of initial clusters
+        self.N_init = 15  # Number of initial clusters
         # Set to one to perform linkage clustering instead of clustering/reassignment
         self.linkage = 1
         # Linkage criterion used if linkage==1 ('average', 'single', 'complete')
@@ -71,14 +72,14 @@ class SpeakerDiarization:
         self.metric_clusteringSelection = 'cosine'
         # Method employed for number of clusters selection. Can be either 'elbow' for an elbow criterion based on within-class sum of squares (WCSS) or 'spectral' for spectral clustering
         self.bestClusteringCriterion = 'spectral'
-        self.sigma = 2  # Spectral clustering parameters, employed if bestClusteringCriterion == spectral
-        self.percentile = 20
-        self.maxNrSpeakers = 10  # If known, max nr of speakers in a sesssion in the database. This is to limit the effect of changes in very small meaningless eigenvalues values generating huge eigengaps
+        self.sigma = 1  # Spectral clustering parameters, employed if bestClusteringCriterion == spectral
+        self.percentile = 80
+        self.maxNrSpeakers = 20  # If known, max nr of speakers in a sesssion in the database. This is to limit the effect of changes in very small meaningless eigenvalues values generating huge eigengaps
         ######
 
         # RESEGMENTATION
-        self.resegmentation = 0  # Set to 1 to perform re-segmentation
-        self.modelSize = 6  # Number of GMM components
+        self.resegmentation = 1  # Set to 1 to perform re-segmentation
+        self.modelSize = 64  # Number of GMM components
         self.nbIter = 10  # Number of expectation-maximization (EM) iterations
         self.smoothWin = 100  # Size of the likelihood smoothing window in nb of frames
         ######
@@ -120,25 +121,21 @@ class SpeakerDiarization:
             frame_length_inSample = self.frame_length_s * self.sr
             hop = int(self.frame_shift_s * self.sr)
             NFFT = int(2**np.ceil(np.log2(frame_length_inSample)))
-            if self.sr >= 16000:
-                mfccNumpy = librosa.feature.mfcc(y=self.data,
-                                                 sr=self.sr,
-                                                 dct_type=2,
-                                                 n_mfcc=self.num_ceps,
-                                                 n_mels=self.num_bins,
-                                                 n_fft=NFFT,
-                                                 hop_length=hop,
-                                                 fmin=20,
-                                                 fmax=7600).T
-            else:
-                mfccNumpy = librosa.feature.mfcc(y=self.data,
-                                                 sr=self.sr,
-                                                 dct_type=2,
-                                                 n_mfcc=self.num_ceps,
-                                                 n_mels=self.num_bins,
-                                                 n_fft=NFFT,
-                                                 hop_length=hop).T
+            
 
+            mfccNumpy = mfcc(sig=self.data,
+			     fs=self.sr,
+			     num_ceps=30,
+			     pre_emph=0,
+			     win_len=0.128,
+			     win_hop=0.01,
+			     nfilts=30,
+			     nfft=NFFT,
+			     low_freq=20,
+			     high_freq=7600,
+			     dct_type=2,
+			     use_energy=False,             
+			     normalize=1)
         except Exception as e:
             self.log.error(e)
             raise ValueError(
