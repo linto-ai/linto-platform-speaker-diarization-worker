@@ -58,7 +58,11 @@ class SpeakerDiarization:
         ######
 
         # CLUSTERING
+<<<<<<< HEAD
         self.N_init = 25  # Number of initial clusters
+=======
+        self.N_init = 15  # Number of initial clusters
+>>>>>>> bfeeb1caea1e2d0fda1125e600b9af4a2f4aefa9
         # Set to one to perform linkage clustering instead of clustering/reassignment
         self.linkage = 1
         # Linkage criterion used if linkage==1 ('average', 'single', 'complete')
@@ -79,7 +83,11 @@ class SpeakerDiarization:
 
         # RESEGMENTATION
         self.resegmentation = 1  # Set to 1 to perform re-segmentation
+<<<<<<< HEAD
         self.modelSize = 128  # Number of GMM components
+=======
+        self.modelSize = 64  # Number of GMM components
+>>>>>>> bfeeb1caea1e2d0fda1125e600b9af4a2f4aefa9
         self.nbIter = 10  # Number of expectation-maximization (EM) iterations
         self.smoothWin = 100  # Size of the likelihood smoothing window in nb of frames
         ######
@@ -354,7 +362,11 @@ class SpeakerDiarization:
                 seg = self.getSegments(self.frame_shift_s, finalSegmentTable, np.squeeze(
                     finalClusteringTableResegmentation), duration)
             else:
+<<<<<<< HEAD
                 finalClusteringTable = final_clustering
+=======
+                finalClusteringTable = finalClusteringTable[:,bestClusteringID.astype(int)-1]
+>>>>>>> bfeeb1caea1e2d0fda1125e600b9af4a2f4aefa9
                 seg = self.getSegments(self.frame_shift_s, segmentTable, np.squeeze(
                     finalClusteringTable), duration)
 
