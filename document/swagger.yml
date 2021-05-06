@@ -26,6 +26,11 @@ paths:
         description: "Audio File"
         required: true
         type: "file"
+      - name: "size"
+        type: "integer"
+        in: "query"
+        description: "Number of Speakers"
+        required: true  
       responses:
         200:
           description: Successfully transcribe the audio

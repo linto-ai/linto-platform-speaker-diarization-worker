@@ -29,13 +29,16 @@ if 'SWAGGER_PATH' in os.environ:
 def healthcheck():
     return "1", 200
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET','POST'])
 def run():
     try:
         app.logger.info('[POST] New user entry - Speaker diarization')
         if 'file' in request.files.keys():
             file = request.files['file']
-            result = worker.run(file)
+            print(file)
+            number_speaker = int(request.args.get('size'))
+            print(number_speaker)
+            result = worker.run(file,number_speaker)
             response = worker.format_response(result)
         else:
             return 'No audio file was uploaded', 400

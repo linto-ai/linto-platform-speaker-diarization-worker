@@ -13,6 +13,7 @@ import sys
 import uuid
 import yaml
 import numpy as np
+from spafe.features.mfcc import mfcc, imfcc
 from flask_swagger_ui import get_swaggerui_blueprint
 ##############
 
@@ -25,8 +26,9 @@ class SpeakerDiarization:
         self.log = logging.getLogger(
             '__speaker-diarization-worker__' + '.' + __name__)
 
+
        # MFCC FEATURES PARAMETERS
-        self.frame_length_s = 0.025
+        self.frame_length_s = 0.128
         self.frame_shift_s = 0.01
         self.num_bins = 30
         self.num_ceps = 30
@@ -47,7 +49,7 @@ class SpeakerDiarization:
         # If set to 1, the KBM size is set as a proportion, given by "relKBMsize", of the pool size
         self.useRelativeKBMsize = 1
         # Relative KBM size if "useRelativeKBMsize = 1" (value between 0 and 1).
-        self.relKBMsize = 0.3
+        self.relKBMsize = 0.4
         ######
 
         # BINARY_KEY
@@ -56,9 +58,9 @@ class SpeakerDiarization:
         ######
 
         # CLUSTERING
-        self.N_init = 16  # Number of initial clusters
+        self.N_init = 25  # Number of initial clusters
         # Set to one to perform linkage clustering instead of clustering/reassignment
-        self.linkage = 0
+        self.linkage = 1
         # Linkage criterion used if linkage==1 ('average', 'single', 'complete')
         self.linkageCriterion = 'average'
         # Similarity metric: 'cosine' for cumulative vectors, and 'jaccard' for binary keys
@@ -69,18 +71,19 @@ class SpeakerDiarization:
         # Distance metric used in the selection of the output clustering solution ('jaccard','cosine')
         self.metric_clusteringSelection = 'cosine'
         # Method employed for number of clusters selection. Can be either 'elbow' for an elbow criterion based on within-class sum of squares (WCSS) or 'spectral' for spectral clustering
-        self.bestClusteringCriterion = 'elbow'
+        self.bestClusteringCriterion = 'spectral'
         self.sigma = 1  # Spectral clustering parameters, employed if bestClusteringCriterion == spectral
-        self.percentile = 40
-        self.maxNrSpeakers = 10  # If known, max nr of speakers in a sesssion in the database. This is to limit the effect of changes in very small meaningless eigenvalues values generating huge eigengaps
+        self.percentile = 80
+        self.maxNrSpeakers = 20  # If known, max nr of speakers in a sesssion in the database. This is to limit the effect of changes in very small meaningless eigenvalues values generating huge eigengaps
         ######
 
         # RESEGMENTATION
         self.resegmentation = 1  # Set to 1 to perform re-segmentation
-        self.modelSize = 6  # Number of GMM components
+        self.modelSize = 128  # Number of GMM components
         self.nbIter = 10  # Number of expectation-maximization (EM) iterations
         self.smoothWin = 100  # Size of the likelihood smoothing window in nb of frames
         ######
+
 
         # SWAGGER PARAM
         self.SWAGGER_URL = '/api-doc'
@@ -111,32 +114,29 @@ class SpeakerDiarization:
             filename = str(uuid.uuid4())
             self.file_path = "/tmp/"+filename
             audioFile.save(self.file_path)
-
+            
+            
             self.data, self.sr = librosa.load(self.file_path, sr=None)
             os.remove(self.file_path)
 
             frame_length_inSample = self.frame_length_s * self.sr
             hop = int(self.frame_shift_s * self.sr)
             NFFT = int(2**np.ceil(np.log2(frame_length_inSample)))
-            if self.sr >= 16000:
-                mfccNumpy = librosa.feature.mfcc(y=self.data,
-                                                 sr=self.sr,
-                                                 dct_type=2,
-                                                 n_mfcc=self.num_ceps,
-                                                 n_mels=self.num_bins,
-                                                 n_fft=NFFT,
-                                                 hop_length=hop,
-                                                 fmin=20,
-                                                 fmax=7600).T
-            else:
-                mfccNumpy = librosa.feature.mfcc(y=self.data,
-                                                 sr=self.sr,
-                                                 dct_type=2,
-                                                 n_mfcc=self.num_ceps,
-                                                 n_mels=self.num_bins,
-                                                 n_fft=NFFT,
-                                                 hop_length=hop).T
+            
 
+            mfccNumpy = mfcc(sig=self.data,
+			     fs=self.sr,
+			     num_ceps=30,
+			     pre_emph=0,
+			     win_len=0.128,
+			     win_hop=0.01,
+			     nfilts=30,
+			     nfft=NFFT,
+			     low_freq=20,
+			     high_freq=7600,
+			     dct_type=2,
+			     use_energy=False,             
+			     normalize=1)
         except Exception as e:
             self.log.error(e)
             raise ValueError(
@@ -182,7 +182,7 @@ class SpeakerDiarization:
                 seg3 = solutionVector[0, last-1]
                 if seg.shape[0] != 0 and seg3 == seg[-1][2]:
                     seg[-1][1] += seg2
-                elif seg3 and seg2 > 0.3:  # and seg2 > 0.1
+                elif seg3 and seg2 > 1:  # and seg2 > 0.1
                     seg = np.vstack((seg, [seg1, seg2, seg3]))
                 first = i+1
         last = np.size(solutionVector, 1)
@@ -191,7 +191,7 @@ class SpeakerDiarization:
         seg3 = solutionVector[0, last-1]
         if seg3 == seg[-1][2]:
             seg[-1][1] += seg2
-        elif seg3 and seg2 > 0.3:  # and seg2 > 0.1
+        elif seg3 and seg2 > 1:  # and seg2 > 0.1
             seg = np.vstack((seg, [seg1, seg2, seg3]))
         seg = np.vstack((seg, [dur, -1, -1]))
         seg[0][0] = 0.0
@@ -265,7 +265,9 @@ class SpeakerDiarization:
         json['segments'] = _segments
         return json
 
-    def run(self, audioFile):
+    
+    
+    def run(self, audioFile,number_speaker):
         try:
             old_stdout = sys.stdout # backup current stdout
             sys.stdout = open(os.devnull, "w")
@@ -338,21 +340,23 @@ class SpeakerDiarization:
                     speechMapping, segmentTable, segmentBKTable, segmentCVTable, Vg, self.bitsPerSegmentFactor, kbmSize, self.N_init, initialClustering, self.metric)
 
             #'Selecting best clustering...'
+            
             if self.bestClusteringCriterion == 'elbow':
                 bestClusteringID = getBestClustering(
                     self.metric_clusteringSelection, segmentBKTable, segmentCVTable, finalClusteringTable, k, self.maxNrSpeakers)
             elif self.bestClusteringCriterion == 'spectral':
                 bestClusteringID = getSpectralClustering(self.metric_clusteringSelection, finalClusteringTable,
-                                                         self.N_init, segmentBKTable, segmentCVTable, k, self.sigma, self.percentile, self.maxNrSpeakers)+1
+                                                         self.N_init, segmentBKTable, segmentCVTable,number_speaker, k, self.sigma, self.percentile, self.maxNrSpeakers)+1
 
-            if self.resegmentation and np.size(np.unique(finalClusteringTable[:, bestClusteringID.astype(int)-1]), 0) > 1:
-                finalClusteringTableResegmentation, finalSegmentTable = performResegmentation(data, speechMapping, mask, finalClusteringTable[:, bestClusteringID.astype(
-                    int)-1], segmentTable, self.modelSize, self.nbIter, self.smoothWin, nSpeechFeatures)
+            final_clustering = bestClusteringID
+            if self.resegmentation and np.size(np.unique(final_clustering), 0) > 1:
+                finalClusteringTableResegmentation, finalSegmentTable = performResegmentation(data, speechMapping, mask, final_clustering, segmentTable, self.modelSize, self.nbIter, self.smoothWin, nSpeechFeatures)
                 seg = self.getSegments(self.frame_shift_s, finalSegmentTable, np.squeeze(
                     finalClusteringTableResegmentation), duration)
             else:
-                return [[0, duration, 1],
-                        [duration, -1, -1]]
+                finalClusteringTable = final_clustering
+                seg = self.getSegments(self.frame_shift_s, segmentTable, np.squeeze(
+                    finalClusteringTable), duration)
 
             sys.stdout = old_stdout # reset old stdout
 
