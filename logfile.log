@@ -1,0 +1,6 @@
+2021-05-06 18:14:22,552 [WARNING] __speaker-diarization-worker__ : The SwaggerUI is not started! Please check the SWAGGER_PATH volume.
+2021-05-06 18:14:22,552 [INFO] __speaker-diarization-worker__ : Starting the speaker diarization service on port 80
+2021-05-06 18:21:59,466 [INFO] __speaker-diarization-worker__ : The SwaggerUI is started successfully on port 80
+2021-05-06 18:21:59,466 [INFO] __speaker-diarization-worker__ : Starting the speaker diarization service on port 80
+2021-05-06 18:22:33,830 [INFO] __speaker-diarization-worker__ : [POST] New user entry - Speaker diarization
+2021-05-06 18:22:38,364 [INFO] __speaker-diarization-worker__.SpeakerDiarization : Speaker Diarization took 4[s] with a speed 0.10[xRT]

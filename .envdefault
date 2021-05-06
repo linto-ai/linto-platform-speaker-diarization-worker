@@ -1,4 +1,0 @@
-# The directory path where to save the logs of the service
-LOGS_PATH=/path/to/save/the/log/file
-# The directory path where is the 'swagger.yml' file saved
-SWAGGER_PATH=./document
